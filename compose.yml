@@ -1,0 +1,39 @@
+version: '3.8'
+services:
+  database:
+    restart: always
+    hostname: database # internal docker hostname
+    image: postgres:latest
+    volumes:
+      - ./temp/database/schema.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./temp/data:/var/lib/postgresql/data
+    environment:
+      - TZ=${TZ:-Europe/Berlin}
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_DATABASE}
+    ports:
+      - '${DB_PORT}:${DB_PORT}'
+    networks:
+      - database
+
+  migration:
+    depends_on:
+      - database
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ./temp/database/migrations:/usr/src/app/migrations
+    environment:
+      - DB_HOST=database # internal docker hostname
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_PORT=${DB_PORT}
+      - DB_DATABASE=${DB_DATABASE}
+      - MIGRATIONS_PATH=./migrations
+    networks:
+      - database
+
+networks:
+  database:
